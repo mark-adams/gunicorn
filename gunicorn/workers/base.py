@@ -14,7 +14,7 @@ import traceback
 
 from gunicorn import util
 from gunicorn.workers.workertmp import WorkerTmp
-from gunicorn.reloader import Reloader
+from gunicorn.reloader import InotifyReloader
 from gunicorn.http.errors import (
     InvalidHeader, InvalidHeaderName, InvalidRequestLine, InvalidRequestMethod,
     InvalidHTTPVersion, LimitRequestLine, LimitRequestHeaders,
@@ -94,7 +94,7 @@ class Worker(object):
                 time.sleep(0.1)
                 sys.exit(0)
 
-            self.reloader = Reloader(callback=changed)
+            self.reloader = InotifyReloader(callback=changed)
             self.reloader.start()
 
         # set environment' variables

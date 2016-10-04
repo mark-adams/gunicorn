@@ -4,6 +4,7 @@
 # See the NOTICE for more information.
 
 import os
+import os.path
 import re
 import sys
 import time
@@ -51,3 +52,53 @@ class Reloader(threading.Thread):
                     if self._callback:
                         self._callback(filename)
             time.sleep(self._interval)
+
+try:
+    from inotify.adapters import Inotify
+    has_inotify = True
+except ImportError:
+    has_inotify = False
+
+
+if has_inotify:
+
+    class InotifyReloader(threading.Thread):
+        def __init__(self, extra_files=None, callback=None):
+            super(InotifyReloader, self).__init__()
+            self._callback = callback
+            self._dirs = set()
+            self._watcher = Inotify()
+
+        def add_extra_file(self, filename):
+            dirname = os.path.dirname(filename)
+
+            if dirname in self._dirs:
+                return
+
+            self._watcher.add_watch(dirname)
+            self._dirname.add(dirname)
+
+        def get_dirs(self):
+            fnames = [
+                os.path.dirname(re.sub('py[co]$', 'py', module.__file__))
+                for module in list(sys.modules.values())
+                if hasattr(module, '__file__')
+            ]
+
+            return set(fnames)
+
+        def run(self):
+            self._dirs = self.get_dirs()
+
+            for dirname in self._dirs:
+                self._watcher.add_watch(dirname)
+
+            for event in self._watcher.event_gen():
+                print(event)
+                if event is None:
+                    continue
+
+                header, type_names, watch_path, filename = event
+                self._callback(filename)
+
+
